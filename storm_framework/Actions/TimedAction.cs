@@ -12,7 +12,7 @@ public class TimedAction : Action
     {
         if (timeout < 0)
         {
-            throw new ArgumentOutOfRangeException("timeout must be positive!");
+            throw new ArgumentOutOfRangeException("timeout", "timeout must be positive!");
         }
         m_timeout = timeout;
         m_starttime = -1;
