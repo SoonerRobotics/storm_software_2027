@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Log Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #0d1117;
+      --panel: #161b22;
+      --panel-light: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --blue: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top right, #17233a 0, var(--background) 42rem);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 56px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
+    h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -0.05em; }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .subtitle { color: var(--muted); margin: 8px 0 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: end; }
+    button, .file-label {
+      border: 1px solid var(--border); border-radius: 8px; background: var(--panel-light);
+      color: var(--text); cursor: pointer; font: inherit; padding: 10px 14px;
+    }
+    button:hover, .file-label:hover { border-color: var(--blue); }
+    input[type="file"] { display: none; }
+    .drop-zone {
+      border: 1px dashed #486581; border-radius: 12px; background: rgba(22, 27, 34, .8);
+      color: var(--muted); margin-bottom: 24px; padding: 18px; text-align: center;
+    }
+    .drop-zone.dragging { border-color: var(--blue); color: var(--text); background: rgba(56, 139, 253, .12); }
+    .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+    .card, .panel { background: rgba(22, 27, 34, .9); border: 1px solid var(--border); border-radius: 12px; }
+    .card { padding: 18px; }
+    .card-label { color: var(--muted); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+    .card-value { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+    .card-value.error { color: var(--red); }
+    .card-value.warning { color: var(--yellow); }
+    .card-value.input { color: var(--blue); }
+    .card-value.stats { color: var(--purple); }
+    .toolbar { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 14px; }
+    .toolbar input, .toolbar select {
+      border: 1px solid var(--border); border-radius: 8px; background: var(--panel);
+      color: var(--text); font: inherit; padding: 10px 12px;
+    }
+    .toolbar input { flex: 1 1 240px; }
+    .toolbar select { min-width: 150px; }
+    .panel { overflow: hidden; }
+    .panel-heading { align-items: center; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; padding: 16px 18px; }
+    .event-count { color: var(--muted); font-size: .85rem; }
+    .events { display: grid; }
+    .event { border-bottom: 1px solid var(--border); display: grid; gap: 14px; grid-template-columns: 98px 1fr auto; padding: 16px 18px; }
+    .event:last-child { border-bottom: 0; }
+    .badge { align-self: start; border-radius: 999px; font-size: .72rem; font-weight: 700; padding: 5px 9px; text-align: center; }
+    .badge-input { background: rgba(56, 139, 253, .18); color: var(--blue); }
+    .badge-info, .badge-system { background: rgba(63, 185, 80, .16); color: var(--green); }
+    .badge-warning { background: rgba(210, 153, 34, .18); color: var(--yellow); }
+    .badge-error { background: rgba(248, 81, 73, .18); color: var(--red); }
+    .badge-stats, .badge-debug, .badge-custom { background: rgba(188, 140, 255, .16); color: var(--purple); }
+    .message { font-weight: 600; }
+    .meta { color: var(--muted); font-size: .82rem; margin-top: 5px; }
+    pre { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; font-size: .76rem; margin: 10px 0 0; max-width: 430px; overflow: auto; padding: 8px; }
+    .time { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+    .empty { color: var(--muted); padding: 40px; text-align: center; }
+    @media (max-width: 800px) {
+      header { align-items: start; flex-direction: column; }
+      .actions { justify-content: start; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .event { grid-template-columns: 88px 1fr; }
+      .time { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Robot telemetry</h1>
+        <p class="subtitle">A simple dashboard for JSON Lines robot logs.</p>
+      </div>
+      <div class="actions">
+        <label class="file-label" for="log-file">Load logfile</label>
+        <input id="log-file" type="file" accept=".log,.jsonl,.txt,application/json">
+        <button id="sample-button" type="button">Use sample data</button>
+      </div>
+    </header>
+
+    <section id="drop-zone" class="drop-zone">
+      Drop a logfile here, or choose <strong>Load logfile</strong>. Each line should be one JSON event.
+    </section>
+
+    <section class="cards" aria-label="Log summary">
+      <article class="card"><div class="card-label">Total events</div><div id="total" class="card-value">0</div></article>
+      <article class="card"><div class="card-label">Inputs</div><div id="inputs" class="card-value input">0</div></article>
+      <article class="card"><div class="card-label">Warnings</div><div id="warnings" class="card-value warning">0</div></article>
+      <article class="card"><div class="card-label">Errors</div><div id="errors" class="card-value error">0</div></article>
+      <article class="card"><div class="card-label">Stats events</div><div id="stats" class="card-value stats">0</div></article>
+    </section>
+
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search messages, sources, or event data…">
+      <select id="type-filter" aria-label="Filter by event type">
+        <option value="ALL">All event types</option>
+      </select>
+    </div>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>Event timeline</h2>
+        <span id="event-count" class="event-count">0 events shown</span>
+      </div>
+      <div id="events" class="events">
+        <div class="empty">No events loaded yet.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const sampleEvents = [
+      {event_type: "INPUT", message: "Controller axis changed", timestamp: "2026-09-30T19:00:00+00:00", source: "driver_controller", data: {axis: "left_x", value: 0.75}},
+      {event_type: "INFO", message: "Robot initialized", timestamp: "2026-09-30T19:00:01+00:00", source: "startup", data: {}},
+      {event_type: "WARNING", message: "Battery voltage is low", timestamp: "2026-09-30T19:01:10+00:00", source: "power_monitor", data: {voltage: 11.2}},
+      {event_type: "ERROR", message: "Motor controller unavailable", timestamp: "2026-09-30T19:01:12+00:00", source: "drive", data: {controller_id: 2}},
+      {event_type: "STATS", message: "Loop statistics", timestamp: "2026-09-30T19:02:00+00:00", source: "main_loop", data: {loop_hz: 50, cycle_ms: 20}},
+      {event_type: "DEBUG", message: "Debug diagnostic event", timestamp: "2026-09-30T19:02:01+00:00", source: "example", data: {}},
+      {event_type: "SYSTEM", message: "Logging system test complete", timestamp: "2026-09-30T19:02:02+00:00", source: "example", data: {}}
+    ];
+
+    let events = [];
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    }[character]));
+    const typeClass = (type) => String(type).toLowerCase().replace(/[^a-z0-9-]/g, "custom");
+
+    function parseLog(text) {
+      const invalidLines = [];
+      const parsed = text.split(/\r?\n/).map((line, index) => {
+        if (!line.trim()) return null;
+        try { return JSON.parse(line); }
+        catch (error) { invalidLines.push(index + 1); return null; }
+      }).filter(Boolean);
+      if (invalidLines.length) {
+        alert(`Skipped invalid JSON on line(s): ${invalidLines.join(", ")}`);
+      }
+      return parsed;
+    }
+
+    function render() {
+      const search = $("search").value.toLowerCase().trim();
+      const selectedType = $("type-filter").value;
+      const filtered = events.filter((event) => {
+        const haystack = JSON.stringify(event).toLowerCase();
+        return (selectedType === "ALL" || event.event_type === selectedType) && haystack.includes(search);
+      });
+      const counts = events.reduce((result, event) => {
+        result[event.event_type] = (result[event.event_type] || 0) + 1;
+        return result;
+      }, {});
+      $("total").textContent = events.length;
+      $("inputs").textContent = counts.INPUT || 0;
+      $("warnings").textContent = counts.WARNING || 0;
+      $("errors").textContent = counts.ERROR || 0;
+      $("stats").textContent = counts.STATS || 0;
+      $("event-count").textContent = `${filtered.length} event${filtered.length === 1 ? "" : "s"} shown`;
+      $("events").innerHTML = filtered.length ? filtered.slice().reverse().map((event) => {
+        const type = escapeHtml(event.event_type || "CUSTOM");
+        const data = event.data && Object.keys(event.data).length
+          ? `<pre>${escapeHtml(JSON.stringify(event.data, null, 2))}</pre>` : "";
+        return `<article class="event">
+          <span class="badge badge-${typeClass(type)}">${type}</span>
+          <div><div class="message">${escapeHtml(event.message || "No message")}</div>
+            <div class="meta">${escapeHtml(event.source || "unknown source")}${data}</div></div>
+          <time class="time">${escapeHtml(formatTime(event.timestamp))}</time>
+        </article>`;
+      }).join("") : '<div class="empty">No events match the current filters.</div>';
+    }
+
+    function updateTypeFilter() {
+      const current = $("type-filter").value;
+      const types = [...new Set(events.map((event) => event.event_type).filter(Boolean))].sort();
+      $("type-filter").innerHTML = '<option value="ALL">All event types</option>' +
+        types.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
+      $("type-filter").value = types.includes(current) ? current : "ALL";
+    }
+
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return Number.isNaN(date.getTime()) ? timestamp || "Unknown time" : date.toLocaleString();
+    }
+
+    function loadEvents(nextEvents) {
+      events = nextEvents.filter((event) => event && event.event_type && event.message);
+      updateTypeFilter();
+      render();
+    }
+
+    $("log-file").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (file) loadEvents(parseLog(await file.text()));
+    });
+    $("sample-button").addEventListener("click", () => loadEvents(sampleEvents));
+    $("search").addEventListener("input", render);
+    $("type-filter").addEventListener("change", render);
+    $("drop-zone").addEventListener("dragover", (event) => {
+      event.preventDefault();
+      $("drop-zone").classList.add("dragging");
+    });
+    $("drop-zone").addEventListener("dragleave", () => $("drop-zone").classList.remove("dragging"));
+    $("drop-zone").addEventListener("drop", async (event) => {
+      event.preventDefault();
+      $("drop-zone").classList.remove("dragging");
+      const file = event.dataTransfer.files[0];
+      if (file) loadEvents(parseLog(await file.text()));
+    });
+
+    loadEvents(sampleEvents);
+  </script>
+</body>
+</html>
