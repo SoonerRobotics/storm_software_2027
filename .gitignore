@@ -59,4 +59,4 @@ nunit-*.xml
 # .vscode
 .vscode
 
-.venv
+.venv 
