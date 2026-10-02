@@ -1,24 +1,22 @@
 import cv2
 from mjpeg_streamer import MjpegServer, Stream
 
-cap = cv2.VideoCapture(0)
+class MJPEG_Handler:
+    def __init__(self, camera):
+        self.cap = cv2.VideoCapture(0)
+        self.stream = Stream("my_camera", size=(640, 480), quality=50, fps=30)
+        self.server = MjpegServer("localhost", 8080)
+        self.server.add_stream(self.stream)
+        self.server.start()
 
-stream = Stream("my_camera", size=(640, 480), quality=50, fps=30)
+    def send_stream(self):
+        _, frame = self.cap.read()
+        cv2.imshow(self.stream.name, frame)            
 
-server = MjpegServer("localhost", 8080)
-server.add_stream(stream)
-server.start()
+        self.stream.set_frame(frame)
 
-while True:
-    _, frame = cap.read()
-    cv2.imshow(stream.name, frame)
-    if cv2.waitKey(1) == ord("q"):
-        break
+        print(round(self.stream.get_bandwidth() / 1024, 2), "KB/s", end="\r")
 
-    stream.set_frame(frame)
-
-    print(round(stream.get_bandwidth() / 1024, 2), "KB/s", end="\r")
-
-server.stop()
-cap.release()
-cv2.destroyAllWindows()
+    '''server.stop()
+    cap.release()
+    cv2.destroyAllWindows()'''
