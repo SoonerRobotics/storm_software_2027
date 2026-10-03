@@ -3,7 +3,7 @@ from mjpeg_streamer import MjpegServer, Stream
 
 class MJPEG_Handler:
     def __init__(self, camera):
-        self.cap = cv2.VideoCapture(0)
+        self.cap = camera
         self.stream = Stream("my_camera", size=(640, 480), quality=50, fps=30)
         self.server = MjpegServer("localhost", 8080)
         self.server.add_stream(self.stream)
