@@ -10,10 +10,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Mapping
 
-
 class EventType(StrEnum):
     """Standard event categories used by the robot."""
-
     INPUT = "INPUT"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -21,7 +19,6 @@ class EventType(StrEnum):
     STATS = "STATS"
     DEBUG = "DEBUG"
     SYSTEM = "SYSTEM"
-
 
 @dataclass(frozen=True, slots=True)
 class LogEvent:
