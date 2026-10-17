@@ -6,13 +6,13 @@ class MJPEG_Handler:
     def __init__(self):
         #self.frame = frame
         self.stream = Stream("my_camera", size=(640, 480), quality=50, fps=30)
-        self.server = MjpegServer("192.168.1.128", 8080)
+        self.server = MjpegServer("192.168.1.98", 8000)
         self.server.add_stream(self.stream)
         self.server.start()
 
     def send_stream(self, frame):
         self.frame = frame
-        cv2.imshow(self.stream.name, self.frame)            
+        #cv2.imshow(self.stream.name, self.frame)            
 
         self.stream.set_frame(self.frame)
 
