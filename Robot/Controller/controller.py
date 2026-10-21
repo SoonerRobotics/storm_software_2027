@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 import json
 import time
@@ -11,8 +11,11 @@ import struct
 import os
 import tomllib
 import copy
+from pathlib import Path
+from Robot.Logging import RobotLogger
 
 constants = {}
+logger = RobotLogger()
 # FIXME this is code from STORM 2026, so we need to refactor/rebase it
 
 # ---------- Helpers ----------
@@ -217,9 +220,6 @@ class RobotClient:
         self.controller_state = ControllerState()
         self.last_controller_state = ControllerState()
 
-        self.arm_poses = [constants["ARM_BASE_PICK"], constants["ARM_BASE_STOW"], constants["ARM_BASE_LOW"],
-                          constants["ARM_BASE_HIGH"], constants["ARM_BASE_CLIMB"]]
-
         self.default_command = default_command
         self.robot_cmd = default_command
         self.robot_state = RobotState.TELEOP
@@ -239,14 +239,14 @@ class RobotClient:
     def try_open_serial(self):
         try:
             self.serial = serial.Serial(constants["SERIAL_PORT"], constants["BAUD_RATE"], timeout=0.5)
-            print(f"[Robot] Serial connected on {constants["SERIAL_PORT"]}")
+            logger.info(f"Serial connected on {constants["SERIAL_PORT"]}", source="SERIAL")
         except Exception as e:
             self.serial = None
-            print(f"[Robot] Serial open failed: {e}")
+            logger.error(f"Serial open failed: {e}", source="SERIAL")
 
     # --- WebSocket callbacks ---
     def on_open(self, ws):
-        print("[Robot] WS connected")
+        logger.info("WS connected", source="WEBSOCKET")
 
         # send websocket message so the relay server knows where to find us
         ws.send(json.dumps({
@@ -310,10 +310,10 @@ class RobotClient:
                     self.camera_rot = payload.get("rot")
 
         except Exception as e:
-            print(f"[Robot] WS message error: {e}")
+            logger.error(f"WS message error: {e}", source="WEBSOCKET")
 
     def on_close(self, ws, code, reason):
-        print("[Robot] WS closed:", code, reason)
+        logger.info(f"WS closed: {code}, {reason}", source="WEBSOCKET")
 
         # TODO: send a 'kill everything' message to robot?
 
@@ -321,7 +321,7 @@ class RobotClient:
         self.stop_event.set()
 
     def on_error(self, ws, error):
-        print("[Robot] WS error:", error)
+        logger.error(f"WS error: {error}", source="WEBSOCKET")
 
     # --- Mapping from controller -> robot_cmd ---
     def update_robot_command_from_controller(self):
@@ -417,10 +417,17 @@ class RobotClient:
                     pass  # FIXME send like, default command? or no command?
 
                 elif self.robot_state == RobotState.AUTONOMOUS:
-                    print(self.robot_cmd)
+                    logger.debug(
+                        "Current autonomous robot command",
+                        source="serial_loop",
+                        data=asdict(self.robot_cmd),
+                    )
 
                     if self.update_robot_command_from_autonomous() is None:
-                        print("SWITCHING TO T")
+                        logger.info(
+                            "Autonomous sequence complete; switching to teleop",
+                            source="serial_loop",
+                        )
                         self.robot_state = RobotState.TELEOP
                     else:
                         if self.robot_cmd is not None:
@@ -434,7 +441,7 @@ class RobotClient:
             time.sleep(1.0 / constants["UPDATE_HZ"])
 
     def shutdown(self, *_):
-        print("\n[Robot] Shutting down...")
+        logger.info("Shutting down...", source="ROBOT")
         self.stop_event.set()
         try:
             self.ws.close()
@@ -446,7 +453,7 @@ class RobotClient:
     def run(self):
         t = threading.Thread(target=self.serial_loop, daemon=True)
         t.start()
-        print(print(f"Starting robot code with ID: {t.native_id}"))
+        logger.info(f"Starting robot code with ID: {t.native_id}", source="ROBOT")
         signal.signal(signal.SIGINT, self.shutdown)
 
         self.ws.run_forever(ping_interval=10, ping_timeout=5)
@@ -455,14 +462,18 @@ class RobotClient:
 # ---------- Main ----------
 if __name__ == "__main__":
     if os.geteuid() != 0:
-        print("Tip: for serial, add your user to 'dialout' or run with sudo.")
+        logger.info("Tip: for serial, add your user to 'dialout' or run with sudo.")
 
-    with open("../constants.toml", "rb") as const_file:
-        try:
+    constants_path = Path(__file__).resolve().parents[2] / "constants.toml"
+    try:
+        with constants_path.open("rb") as const_file:
             constants = tomllib.load(const_file)
-        except Exception as e:
-            print("[Robot] Failed to read constants file")
-            raise SystemExit
+    except (OSError, tomllib.TOMLDecodeError) as e:
+        logger.error(
+            f"Failed to read constants file at {constants_path}: {e}",
+            source="ROBOT",
+        )
+        raise SystemExit from e
 
     # have to update this after reading the constants file
     default_robot_command = RobotCommand()
@@ -470,7 +481,7 @@ if __name__ == "__main__":
     url = constants["COMPETITION_SERVER_URL"] if constants["COMPETITION"] else constants["LOCAL_SERVER_URL"]
     port = constants["COMPETITION_SERVER_PORT"] if constants["COMPETITION"] else constants["LOCAL_SERVER_PORT"]
 
-    robot = RobotClient(f"{url}:{port}", default_robot_command, get_autonomous_programs(constants))
+    robot = RobotClient(f"{url}:{port}", default_robot_command, get_autonomous_programs())
 
     try:
         robot.run()
