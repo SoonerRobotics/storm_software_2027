@@ -6,6 +6,9 @@ import sys
 from multiprocessing import shared_memory
 import http.server
 import socketserver
+from websockets.sync.client import connect
+import asyncio
+
 
 cap = cv2.VideoCapture(0)
 _, frame = cap.read()
@@ -21,17 +24,19 @@ with socketserver.TCPServer(("", PORT), Handler) as httpd:
     print(f"Serving at port {PORT}")
     httpd.serve_forever()'''
 
-try:
-	while True:
-		_, frame = cap.read()
-		buff = frame
-		mjpeg.send_stream(buff)
-		a_t.pose_estimation(buff)
-	    #cv2.imshow("image", buff)
-		if cv2.waitKey(1) == ord("q"):
-			break
-except:
-	print("exit")
-finally:
-	shm.close()
-	shm.unlink()
+async def main():
+	try:
+		with connect("ws://192.168.1.128:8765", ping_interval=None) as websocket:
+			while True:
+				_, frame = cap.read()
+				buff = frame
+				mjpeg.send_stream(buff)
+				#a_t.pose_estimation(buff)
+				websocket.send(str(mjpeg.bw))
+	except Exception as exc:
+		print(f"Client error: {exc!r}")
+	finally:
+		shm.close()
+		shm.unlink()
+
+asyncio.run(main())

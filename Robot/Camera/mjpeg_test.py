@@ -9,6 +9,7 @@ class MJPEG_Handler:
         self.server = MjpegServer("192.168.1.98", 8000)
         self.server.add_stream(self.stream)
         self.server.start()
+        self.bw = None
 
     def send_stream(self, frame):
         self.frame = frame
@@ -16,7 +17,7 @@ class MJPEG_Handler:
 
         self.stream.set_frame(self.frame)
 
-        print(round(self.stream.get_bandwidth() / 1024, 2), "KB/s", end="\r")
+        self.bw = round(self.stream.get_bandwidth() / 1024, 2)
 
 #shm = shared_memory.SharedMemory(name = "Frame", create=False)
 #buf = shm.buf
