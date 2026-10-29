@@ -6,7 +6,7 @@ class MJPEG_Handler:
     def __init__(self):
         #self.frame = frame
         self.stream = Stream("my_camera", size=(320, 240), quality=40, fps=24)
-        self.server = MjpegServer("192.168.1.98", 8000)
+        self.server = MjpegServer("localhost", 8000)
         self.server.add_stream(self.stream)
         self.server.start()
 
