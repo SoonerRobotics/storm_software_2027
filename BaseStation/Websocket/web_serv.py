@@ -11,6 +11,7 @@ async def msg(websocket):
 
 async def main():
     server = await serve(msg, "192.168.1.128", 8765, ping_interval=None)
+    print("Server started")
     await server.serve_forever()
 
 asyncio.run(main())
