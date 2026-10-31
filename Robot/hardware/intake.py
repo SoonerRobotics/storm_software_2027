@@ -1,3 +1,0 @@
-
-class Intake:
-    pass #TODO

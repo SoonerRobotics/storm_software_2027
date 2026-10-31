@@ -1,5 +1,5 @@
 import cv2
-import Robot.Camera.mjpeg_streaming as mjpeg_streaming
+import mjpeg_streaming
 import apriltag
 import sys
 from multiprocessing import shared_memory

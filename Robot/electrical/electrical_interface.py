@@ -1,3 +1,0 @@
-
-class ElectricalInterface:
-    pass #TODO
