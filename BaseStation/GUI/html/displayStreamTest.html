@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div class="camera-box">
+    <img src='ws://192.168.1.128:8765' alt = 'Server is not active'/>
+    </div>
+    <style>
+
+
+  .camera-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;     
+    height: 300px;           
+  }
+</style>
+<!--- example bandwidth tracker with websockets-->
+ <h2>bandwidth example</h2>
+    <p>Bandwidth: <strong id="bandwidth">--</strong> kb/s</p>
+    <p>Websocket Status: <strong id="status">Offline</strong></p>
+
+    <script>
+       
+        const socket = new WebSocket("ws://localhost:8765");
+
+       
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            document.getElementById("bandwidth").textContent = data.bandwidth;
+            document.getElementById("status").textContent = data.status;
+        };
+
+        socket.onclose = function() {
+            document.getElementById("status").textContent = "False";
+        };
+    </script>
+
+ 
+
+
+
+</body>
+</html>
