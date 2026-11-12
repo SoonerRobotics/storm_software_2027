@@ -17,7 +17,7 @@ async def main():
 		while True:
 			robot.send_camera()
 			robot.send_bw()
-			print(robot.ws.recv())
+			#print(robot.ws.recv())
 	except Exception as e:
 		print(f"Something broke: {e}")
 	finally:
