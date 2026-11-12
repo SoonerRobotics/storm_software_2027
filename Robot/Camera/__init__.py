@@ -1,1 +1,1 @@
-from . import apriltag, driver_camera, mjpeg_test
+from . import apriltag, driver_camera, mjpeg_streaming
