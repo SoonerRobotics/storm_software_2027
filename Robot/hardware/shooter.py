@@ -1,3 +1,0 @@
-
-class Shooter:
-    pass #TODO

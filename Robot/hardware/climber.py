@@ -1,3 +1,0 @@
-
-class Climber:
-    pass #TODO

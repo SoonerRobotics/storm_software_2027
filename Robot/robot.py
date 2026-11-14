@@ -1,45 +1,39 @@
+from Camera.driver_camera import Camera
+import asyncio
+import websocket
+from json import dumps
 
-#TODO
-
-from Robot.electrical.cannon import CannonBoard
-from Robot.electrical.electrical_interface import ElectricalInterface
-from Robot.electrical.traversal import TraversalBoard
-
-from Robot.hardware.climber import Climber
-from Robot.hardware.drivetrain import Drivetrain
-from Robot.hardware.indexer import Indexer
-from Robot.hardware.intake import Intake
-from Robot.hardware.shooter import Shooter
-
-
-class Robot:
-    def __init__(self):
+class Robot():
+    def __init__(self, shm, buf):
+        self.shm = shm
+        self.cam = Camera(self.shm, buf)
         self.connected = False
-
-        self.electrical_interface = ElectricalInterface()
-
-        self.traversal_board = TraversalBoard(self.electrical_interface)
-        self.cannon_board = CannonBoard(self.electrical_interface)
-
-        self.climber = Climber(traversal_board)
-        self.drivetrain = Drivetrain(traversal_board)
-
-        self.shooter = Shooter(cannon_board)
-        self.intake = Intake(cannon_board)
-        self.indexer = Indexer(cannon_board)
-
+        self.ws = websocket.WebSocket()
+        self.msg = {"Header": "Init",
+                    "Sender": "Robot",
+                    "Recipient": None,
+                    "Message": "Hello Server from Robot"}
+        
+    
     def start(self):
-        self.electrical_interface.open()
-
-        #TODO who is spinning up the separate electrical thread?
-
-        pass #TODO
-
-    def connect(self):
-        pass #TODO connect to GUI?
-
+        self.ws.connect("ws://192.168.1.128:8765")
+        init_msg = dumps(self.msg)
+        self.ws.send(init_msg)
+        self.connected = True
+    
     def close(self):
-        pass #TODO: idk close logs? other resources?
+        self.cam.close()
+    
+    def send_camera(self):
+        self.cam.send_frame()
 
-    def loop(self):
-        pass #TODO idk all robot logic go here??????
+    
+    def send_bw(self):
+        self.msg = {"Header": "Msg",
+                    "Sender": "Robot",
+                    "Recipient": "Base Station",
+                    "Message": f"{self.cam.bw}"}
+        self.ws.send(dumps(self.msg))
+        
+    def on_message(ws, message):
+        print(message)

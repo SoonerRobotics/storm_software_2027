@@ -1,32 +1,37 @@
+from robot import Robot
+import websockets
+import asyncio
+from multiprocessing import shared_memory
+import sys, cv2
+from json import loads
+from Mechanisms.cannon import Cannon	
 
-#TODO FIXME
+async def main():
+	
+	cap = cv2.VideoCapture(0)
+	_, frame = cap.read()
+	shm = shared_memory.SharedMemory(name = "Frame5", create=True, size=sys.getsizeof(frame))
+	cap.release()
+	buf = shm.buf
+	robot = Robot(shm, buf)
+	cannon = Cannon()
+	try:
+		robot.start()
+		while True:
+			robot.send_camera()
+			robot.send_bw()
+			msg = loads(robot.ws.recv())
+			match msg["Header"]:
+				case "Cannon":
+					cannon.cannon = msg["Message"]
+					cannon.shoot()
+	except Exception as e:
+		print(f"Something broke: {e}")
+	finally:
+		shm.close()
+		shm.unlink()
 
-import time
-
-from Robot.robot import Robot
-
-#TODO FIXME who is controlled / responding to FMS messages and commands?
+  
 
 if __name__ == "__main__":
-    robot = Robot()
-
-    while not robot.connected:
-        #TODO this is an example
-        robot.connect()
-        time.sleep(1)
-
-    # robot is now connected
-    robot.start()
-
-    try:
-        while True:
-            #FIXME doesn't this need to be CommandScheduler.run()
-            robot.loop()
-
-            # we should copy and have like a RobotInit, RobotPeriodic, AutonomousInit, AutonomousPeriodic, etc.
-    except Exception as e:
-        print(f"Robot enountered exception: {e}")
-
-        robot.close()
-
-        raise e
+	asyncio.run(main())
