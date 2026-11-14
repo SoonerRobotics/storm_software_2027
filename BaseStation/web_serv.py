@@ -9,27 +9,27 @@ class Serve():
         self.server.set_fn_new_client(self.new_client)
         self.server.set_fn_client_left(self.client_left)
         self.server.set_fn_message_received(self.on_message)
-        self.connected = False
-        self.connections = {"Robot" : "None",
-                            "Base Station": "None"}
+        self.connections = {}
     
     def new_client(self, client, server):
         print("new client")
-        self.connected = True
 
     def client_left(self, client, server):
         print("client left")
-        self.connected = False
     
     def on_message(self, client, server, message):
         #print(message)
-        msg = loads(message)
-        if(msg["Header"] == "Init"):
-            self.connections[msg["Sender"]] = client
-            print(msg["Message"])
+        msgIn = loads(message)
+        if(msgIn["Header"] == "Init"):
+            self.connections[msgIn["Sender"]] = client
+            print(msgIn["Message"])
             
-        elif(msg["Header"] == "Msg"):
-            self.server.send_message(client=self.connections[msg["Recipient"]], msg=msg["Message"])  
+        else:
+            msgOut = dumps(msgIn)
+            try:
+                self.server.send_message(client=self.connections[msgIn["Recipient"]], msg=msgOut)  
+            except:
+                print("Recipient Currently Unavailable")
   
     def run(self):
         print('started')
