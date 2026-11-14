@@ -3,6 +3,8 @@ import websockets
 import asyncio
 from multiprocessing import shared_memory
 import sys, cv2
+from json import loads
+from Mechanisms.cannon import Cannon	
 
 async def main():
 	
@@ -12,12 +14,17 @@ async def main():
 	cap.release()
 	buf = shm.buf
 	robot = Robot(shm, buf)
+	cannon = Cannon()
 	try:
 		robot.start()
 		while True:
 			robot.send_camera()
 			robot.send_bw()
-			#print(robot.ws.recv())
+			msg = loads(robot.ws.recv())
+			match msg["Header"]:
+				case "Cannon":
+					cannon.cannon = msg["Message"]
+					cannon.shoot()
 	except Exception as e:
 		print(f"Something broke: {e}")
 	finally:
