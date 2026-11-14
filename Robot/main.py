@@ -10,6 +10,7 @@ async def main():
 	
 	cap = cv2.VideoCapture(0)
 	_, frame = cap.read()
+	#just getting the memory size of camera frames so we can make a big enough shared memory
 	shm = shared_memory.SharedMemory(name = "Frame5", create=True, size=sys.getsizeof(frame))
 	cap.release()
 	buf = shm.buf
@@ -18,9 +19,12 @@ async def main():
 	try:
 		robot.start()
 		while True:
+			#send mjpeg with http stuff
 			robot.send_camera()
+			#send bandwidth with websockets
 			robot.send_bw()
 			msg = loads(robot.ws.recv())
+			#this is how i'm thinking of passing commands to various systems, just match case dictionary values
 			match msg["Header"]:
 				case "Cannon":
 					cannon.cannon = msg["Message"]

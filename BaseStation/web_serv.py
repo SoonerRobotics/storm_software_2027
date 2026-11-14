@@ -19,15 +19,14 @@ class Serve():
     
     def on_message(self, client, server, message):
         #print(message)
-        msgIn = loads(message)
-        if(msgIn["Header"] == "Init"):
-            self.connections[msgIn["Sender"]] = client
-            print(msgIn["Message"])
+        msg = loads(message)
+        if(msg["Header"] == "Init"):
+            self.connections[msg["Sender"]] = client
+            print(msg["Message"])
             
         else:
-            msgOut = dumps(msgIn)
             try:
-                self.server.send_message(client=self.connections[msgIn["Recipient"]], msg=msgOut)  
+                self.server.send_message(client=self.connections[msg["Recipient"]], msg=message)  
             except:
                 print("Recipient Currently Unavailable")
   
