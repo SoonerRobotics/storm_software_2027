@@ -1,30 +1,51 @@
-import struct, serial
+import struct
+
+try:
+    import serial
+except ImportError:
+    serial = None
 
 class Electrical_Interface():
-    def __init__(self):
-        #create the serial sever adn stuff
-        self.ser = serial.Serial('blah blah fix later')
-        #not sure how we want to store info yet, maybe dict then iterate through that when packing?
-        self.vars = {'yada': 'yada',
-                     'more': 'yada'}
+    def __init__(self, port=None, baudrate=115200):
+        self.ser = None
+        # define our vars
+        self.vars = {
+            'forward': 0.0,
+            'turn': 0.0,
+            'cannon_x': 0.0,
+            'cannon_y': 0.0,
+        }
         self.msg = None
-        pass
+        # we can't do anything without pyserial
+        if port is not None:
+            if serial is None:
+                raise RuntimeError("pyserial is required to open an electrical serial connection")
+            self.ser = serial.Serial(port, baudrate)
     
     def update_vars(self, updates: dict):
-        
-        for x in updates:
-            self.vars[x] = updates[x]
+        for name, value in updates.items():
+            if name not in self.vars:
+                raise KeyError(f"Unknown electrical variable: {name}")
+            self.vars[name] = value
     
     def pack_msg(self):
-        #put all the stuff we need to update into a struct msg to send
-        tmp = []
-        for val in self.vars:
-            tmp.append(self.vars[val])
-        self.msg = struct.pack(tmp)
-        pass
+        # this updates our variables into the message
+        self.msg = struct.pack(
+            '<ffff',
+            self.vars['forward'],
+            self.vars['turn'],
+            self.vars['cannon_x'],
+            self.vars['cannon_y'],
+        )
     
     def send_msg(self):
-        #send the stuff to electrical
         self.pack_msg()
-        self.ser.write(self.msg)
-        
+        # send our message to the serial interface
+        if self.ser is not None:
+            self.ser.write(self.msg)
+
+    def send_command(self, command: str, payload=None):
+        # TODO this is for like oneshot commands like firing the cannon, but this needs to be fixed
+        raise NotImplementedError(
+            "Board protocol is not defined yet, pending Arduino interface or if we just write it straight through serial"
+        )
