@@ -5,7 +5,7 @@ from json import loads, dumps
 
 class Serve():
     def __init__(self):
-        self.server = WebsocketServer(host='192.168.1.128', port=8765)
+        self.server = WebsocketServer(host='192.168.1.128', port=8765) #brendan laptop ip, change later
         self.server.set_fn_new_client(self.new_client)
         self.server.set_fn_client_left(self.client_left)
         self.server.set_fn_message_received(self.on_message)
