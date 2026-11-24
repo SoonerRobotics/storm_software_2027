@@ -1,0 +1,379 @@
+#pragma once
+#include <stdint.h>
+
+// stolen from https://stackoverflow.com/a/60881515/13722141
+int16_t byte_to_int16(char* data) {
+    unsigned value = data[0] | ((unsigned)data[1] << 8);
+    if (value & 0x8000)
+        return -(int)(~value) - 1;
+    else
+        return value;
+}
+
+uint16_t byte_to_uint16(char* data) {
+    uint16_t value = data[0] | (data[1] << 8);
+    
+    return value;
+}
+
+/**
+ * Unique number indicating who the message is for.
+ * Only the computer (#1) can send messages on its own initiative.
+ * If more boards are created, add them after the "game" board.
+ * The special address number 0 indicates the message is for all boards.
+ */
+enum Address {
+    all = 0,
+    computer = 1,
+    drive = 2,
+    task = 3,
+    sensor = 4,
+    servo = 5,
+    game = 6
+};
+
+/**
+ * The unique message ID of the message.
+ * See the STORM 2027 Serial Specification for which messages carry what data
+ */
+enum Message {
+    ComputerRequest = 10,
+    Heartbeat = 11,
+    Configuration = 12,
+    ConfigComplete = 13,
+    RobotVelocity = 20,
+    DriveVelocity = 21,
+    DriveVoltage = 22,
+    DriveRaw = 23,
+    DriveFeedback = 24,
+    BatteryVoltage = 25,
+    TaskCommand = 30,
+    TaskResponse = 31,
+    SensorResponse = 40,
+    ServoCommand = 50,
+    GameCommand = 60,
+    GameResponse = 61,
+    None = 255 // this is special and used for testing only
+};
+
+// ========== message typedef struct definitions ==========
+
+// ID 10
+typedef struct Request {
+    uint8_t ID;
+} Request;
+
+// ID 11
+typedef struct HeartbeatMsg {
+    char b = 0xFF; //TODO FIXME
+} HeartbeatMsg;
+
+// ID 12
+typedef struct ConfigurationMsg {
+    uint8_t type;
+    uint8_t ID;
+    //TODO
+} ConfigurationMsg;
+
+// ID 13
+typedef struct ConfigCompleteMsg {
+    char b = 0x00;
+} ConfigCompleteMsg;
+
+// ID 20
+typedef struct RobotVelocityCmd {
+    int16_t forward_velocity;
+    int16_t sideways_velocity;
+    int16_t rotational_velocity;
+} RobotVelocityCmd;
+
+// ID 21
+typedef struct DriveVelocityCmd {
+    int16_t front_left_velocity;
+    int16_t front_right_velocity;
+    int16_t back_left_velocity;
+    int16_t back_right_velocity;
+} DriveVelocityCmd;
+
+// ID 22
+typedef struct DriveVoltageCmd {
+    int16_t front_left_voltage;
+    int16_t front_right_voltage;
+    int16_t back_left_voltage;
+    int16_t back_right_voltage;
+} DriveVoltageCmd;
+
+// ID 23
+typedef struct DriveRawCmd {
+    int16_t front_left_raw;
+    int16_t front_right_raw;
+    int16_t back_left_raw;
+    int16_t back_right_raw;
+} DriveRawCmd;
+
+// ID 24
+typedef struct DriveFeedbackRsp {
+    int16_t forward_velocity;
+    int16_t sideways_velocity;
+    int16_t rotational_velocity;
+    int16_t delta_x;
+    int16_t delta_y;
+    int16_t delta_theta;
+} DriveFeedbackRsp;
+
+// ID 25
+typedef struct BatteryVoltageRsp {
+    uint8_t voltage;
+} BatteryVoltageRsp;
+
+// ID 30
+typedef struct TaskCommandCmd {
+    //FIXME - message not defined yet
+    int16_t intake_velocity;
+    uint8_t arm_position;
+    uint16_t climber_position;
+    uint8_t charging_wheel_velocity;
+} TaskCommandCmd;
+
+// ID 31
+typedef struct TaskResponseRsp {
+    //FIXME - message not defined yet
+    int16_t intake_velocity;
+    uint8_t arm_position;
+    uint16_t climber_position;
+    uint8_t charging_wheel_velocity;
+} TaskResponseRsp;
+
+// ID 40
+typedef struct SensorResponseRsp {
+    //FIXME - message not defined yet
+    int8_t robot_current;
+    uint16_t arm_distance;
+    uint16_t back_distance;
+    bool intake_possession;
+} SensorResponseRsp;
+
+// ID 50
+typedef struct ServoCommandCmd {
+    //FIXME - message not defined yet
+    uint8_t arm_position;
+    int8_t wrist_position;
+    bool claw_toggle;
+    //TODO: other servos here
+} ServoCommandCmd;
+
+// ID 60
+typedef struct GameCommandCmd {
+    //FIXME - message not defined yet
+    char TEMPORARY;
+} GameCommandCmd;
+
+// ID 61
+typedef struct GameResponseRsp {
+    //FIXME - message not defined yet
+    char TEMPORARY;
+} GameResponseRsp;
+
+// ================================================
+
+
+/**
+ * TODO: document
+ */
+class StormMessage {
+public:
+    Message type;
+    Address address;
+    uint8_t size;
+    char DATA[16];
+
+    /**
+     * TODO: document
+     */
+    StormMessage() {
+        //FIXME this is like, bad, no?
+        this->type = Message::None;
+        this->address = Address::all;
+        this->size = 0;
+    }
+
+    /**
+    * TODO: document
+    */
+    StormMessage(Message type, Address address, uint8_t size, char* data) {
+        this->type = type;
+        this->address = address;
+        this->size = size;
+
+        //TODO: check to see if this makes a legal message and if not, idk do something
+        
+        for (uint8_t i = 0; i < size; i++) {
+            DATA[i] = data[i];
+        }
+    }
+
+    /**
+    * TODO: document
+    */
+    ~StormMessage() {
+        //TODO
+    }
+
+    // message conversion methods
+    Request AsRequest() {
+        Request msg;
+
+        msg.ID = this->DATA[0];
+
+        return msg; 
+    }
+
+    HeartbeatMsg AsHeartbeat() {
+        HeartbeatMsg msg;
+
+        // no meaningful data bytes
+
+        return msg;
+    }
+
+    ConfigurationMsg AsConfiguration() {
+        ConfigurationMsg msg;
+
+        msg.ID = static_cast<uint8_t>(DATA[0]);
+        
+        //TODO: data type and whatnot
+
+        return msg;
+    }
+
+    ConfigCompleteMsg AsConfigurationComplete() {
+        ConfigCompleteMsg msg;
+
+        // no meaningful data bytes
+
+        return msg;
+    }
+
+    RobotVelocityCmd AsRobotVelocity() {
+        RobotVelocityCmd cmd;
+
+        cmd.forward_velocity = byte_to_int16(DATA);
+        cmd.sideways_velocity = byte_to_int16(DATA + 2);
+        cmd.rotational_velocity = byte_to_int16(DATA + 4);
+
+        return cmd;
+    }
+
+    DriveVelocityCmd AsDriveVelocity() {
+        DriveVelocityCmd cmd;
+
+        cmd.front_left_velocity = byte_to_int16(DATA);
+        cmd.front_right_velocity = byte_to_int16(DATA + 2);
+        cmd.back_left_velocity = byte_to_int16(DATA + 4);
+        cmd.back_right_velocity = byte_to_int16(DATA + 6);
+
+        return cmd;
+    }
+
+    DriveVoltageCmd AsDriveVoltage() {
+        DriveVoltageCmd cmd;
+
+        cmd.front_left_voltage = byte_to_int16(DATA);
+        cmd.front_right_voltage = byte_to_int16(DATA + 2);
+        cmd.back_left_voltage = byte_to_int16(DATA + 4);
+        cmd.back_right_voltage = byte_to_int16(DATA + 6);
+
+        return cmd;
+    }
+
+    DriveRawCmd AsDriveRaw() {
+        DriveRawCmd cmd;
+
+        cmd.front_left_raw = byte_to_int16(DATA);
+        cmd.front_right_raw = byte_to_int16(DATA + 2);
+        cmd.back_left_raw = byte_to_int16(DATA + 4);
+        cmd.back_right_raw = byte_to_int16(DATA + 6);
+
+        return cmd;
+    }
+
+    DriveFeedbackRsp AsDriveFeedback() {
+        DriveFeedbackRsp rsp;
+
+        rsp.forward_velocity = byte_to_int16(DATA);
+        rsp.sideways_velocity = byte_to_int16(DATA + 2);
+        rsp.rotational_velocity = byte_to_int16(DATA + 4);
+        rsp.delta_x = byte_to_int16(DATA + 6);
+        rsp.delta_y = byte_to_int16(DATA + 8);
+        rsp.delta_theta = byte_to_int16(DATA + 10);
+
+        return rsp;
+    }
+
+    BatteryVoltageRsp AsBatteryVoltage() {
+        BatteryVoltageRsp rsp;
+        
+        rsp.voltage = static_cast<uint8_t>(DATA[0]);
+
+        return rsp;
+    }
+
+    TaskCommandCmd AsTaskCommand() {
+        TaskCommandCmd cmd;
+        
+        cmd.intake_velocity = byte_to_int16(DATA);
+        cmd.arm_position = static_cast<uint8_t>(DATA[2]);
+        cmd.climber_position = byte_to_uint16(DATA + 3);
+        cmd.charging_wheel_velocity = static_cast<uint8_t>(DATA[5]);
+
+        return cmd;
+    }
+
+    TaskResponseRsp AsTaskResponse() {
+        TaskResponseRsp rsp;
+
+        rsp.intake_velocity = byte_to_int16(DATA);
+        rsp.arm_position = static_cast<uint8_t>(DATA[2]);
+        rsp.climber_position = byte_to_uint16(DATA + 3);
+        rsp.charging_wheel_velocity = static_cast<uint8_t>(DATA[5]);
+
+        return rsp;
+    }
+
+    SensorResponseRsp AsSensorResponse() {
+        SensorResponseRsp rsp;
+        
+        rsp.robot_current = static_cast<uint8_t>(DATA[0]);
+        rsp.arm_distance = byte_to_uint16(DATA + 1);
+        rsp.back_distance = byte_to_uint16(DATA + 3);
+        rsp.intake_possession = static_cast<bool>(DATA[5]);
+
+        return rsp;
+    }
+
+    ServoCommandCmd AsServoCommand() {
+        ServoCommandCmd cmd;
+        
+        cmd.arm_position = static_cast<uint8_t>(DATA[0]);
+        cmd.wrist_position = static_cast<int8_t>(DATA[1]);
+        cmd.claw_toggle = static_cast<bool>(DATA[2]);
+
+        return cmd;
+    }
+
+    GameCommandCmd AsGameCommand() {
+        GameCommandCmd cmd;
+        
+        //TODO: message not defined yet
+
+        return cmd;
+    }
+
+    GameResponseRsp AsGameResponse() {
+        GameResponseRsp rsp;
+        
+        //TODO: message not defined yet
+
+        return rsp;
+    }
+};
