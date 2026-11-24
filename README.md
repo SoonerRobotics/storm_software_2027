@@ -4,7 +4,7 @@ Code for our entry into the [2027 STORM competition](https://storm.soonerrobotic
 # Architecture
 The repository is divided into 3 main sections: the Robot code, the Base Station code, and the robot firmware. The robot code is written in Python, and sort of based on last year's code. The base station code is written in HTML/JavaScript, and does away with the separate Python process that we had last year. The firmware is written in C++ using the Arduino library, and is based on work done over the summer that you can find on the `test/stormlib` branch in last year's repository.
 
-TODO: insert diagram here, and maybe a link to the software architecture document.
+More information can be found in the [STORM 2027 Software Architecture](https://docs.google.com/document/d/16evtjG1M5LncGTOwgNlK3MpllWmala_v4nvgPZLWfDY/edit?tab=t.0) document.
 
 # Installation
 
@@ -55,7 +55,11 @@ To prepare to run the **Robot** code, follow these steps:
 
     `git clone https://github.com/ithewei/libhv.git`
 
-    TODO: instructions for what packages you will need to install for building libhv
+    If you do not have a compiler, try
+
+    ```bash
+    sudo apt install build-essential cmake
+    ```
 
 5. **Install libhv**:
 
@@ -71,23 +75,25 @@ To prepare to run the **Robot** code, follow these steps:
     sudo make install
     ```
 
-6. **Build the Websocket Server**:
+6. **Clone the Websocket Server**:
 
-    TODO: same steps as last year?
+    ```bash
+    git clone https://github.com/antonioc76/Sockets-U-Serialization.git
+    cd Sockets-U-Serialization
+    ```
+
+7. **Build & Install the Websocket Server**:
+
+    ```bash
+    mkdir build
+    cmake -S ./ws_server -B ./build -DCMAKE_CXX_COMPILER=g++-13
+    cmake --build ./build
+    ```
 
 That's it! You should be all good to run the robot code now.
 
 ## Installation: Base Station
-To prepare to run the **base station** code, perform the following steps:
-
-1. **Clone the repository**:
-
-    TODO
-
-2. **???**:
-    
-    ??? are there any other steps?
-
+There are no installation instructions for the base station code. Just clone the repository, and then follow the instructions below to run it.
 
 # Running
 ## Robot
@@ -95,16 +101,18 @@ To run the robot code, perform the following steps:
 
 TODO: we really should have an auto-run service or something for this...
 
-1. SSH into the robot (TODO: IP address subject to change. definitely at competition there will be a different address)
+TODO: also, we will need to change the IP address somewhere in the code, probably for both robot and base station. add a step for where it needs to be changed.
+
+1. SSH into the robot
 
     ```bash
     ssh scr@192.168.1.79
     ```
 
-2. Navigate to the repository
+2. Navigate to the websocket server repository
 
     ```bash
-    cd ~/Documents/storm_software_2027/robot
+    cd ~/Documents/Sockets-U-Serialization/
     ```
 
 3. Start the websocket server
@@ -113,7 +121,14 @@ TODO: we really should have an auto-run service or something for this...
     ./ws_server
     ```
 
-4. Start the robot code
+4. Navigate to the STORM 2027 repository
+
+    ```bash
+    cd ~/Documents/storm_software_2027/robot
+    ```
+
+
+5. Start the robot code
 
     ```bash
     python3 ./main.py
@@ -123,20 +138,37 @@ TODO: we really should have an auto-run service or something for this...
 To "run" the base station code, simply open `base_station/index.html` in a web browser.
 
 # Button Bindings
-The controls for the robot are shown in the diagram below.
+The (tentative) controls for the robot are shown in the diagram below.
 
-TODO: insert diagram
+![STORM 2027 button bindings](<diagrams/STORM 2027 Controller Button Bindings.png>)
 
 # Firmware
-TODO: about the firmware
+The firmware features an entirely new communications library, StormLib, for sending custom messages back and forth over RS-485. The full details are explained in the [STORM 2027 Serial Specification](https://docs.google.com/document/d/12uRvUI1vzKqb39eKWllWqqgihEtoIuftWWLzEFsb1ek/edit?tab=t.0), but the gist of it is that there are variable-length *Commands*, *Requests*, and *Responses*. Only the robot's computer is allowed to initiate communication, and individual board firmware only ever receives messages, or responds to an explicit *request* from the computer, and never sends messages of its own volition. This is described by the diagram below.
+
+![firmware flowchart](<diagrams/Software Firmware Interface.drawio.png>)
 
 ## Firmware: Installation
-To install the firmware on one of the PCBs, perform the following steps. The steps are exactly the same for either the Traversal or Cannon board.
+To install the firmware on one of the PCBs, perform the following steps. The steps are exactly the same for either the Traversal or Cannon board, though the actual file you are uploading will be different.
 
-Libraries needed:
- - TODO
+1. Download and install the Arduino IDE from https://www.arduino.cc/en/software/
+
+2. Install Earl's Arduino Pico Library by following the instructions in the [README](https://github.com/earlephilhower/arduino-pico), you may have to scroll down to find them.
+
+3. Install the other following libraries:
+
+    ```
+    TODO...? RS-485? Servo?
+    ```
 
 # Contributing
-TODO: branch names, schemes, PR formats, etc.
+We don't have to be super formal, especially with the lack of experienced software members, so just stick to the following general rules:
+ * Prefix branch names with either `feat/` or `bug/` or `test/`, depending on what the branch is.
+ * **Never** push directly to main, open a pull request and have at least 1 other member review it.
+ * Don't clutter the repository with build files or other files generated by tools. If you need help adding something to the `.gitignore`, just ask.
 
-Sooner Competitive Robotics, 2027.
+
+Software development done by Daniel Brown (captain), Brendan Richards, Josh Kernop, and Saul Harrison.
+Firmware development done by Daniel Brown (captain), Tyler Afonien, Evan Woods, and  Diego Barrios.
+Special thanks to mentors/alumni Noah Zemlin, Braden White, Dylan Zemlin, and Tyler Julian.
+
+STORM Software 2027, Sooner Competitive Robotics.
