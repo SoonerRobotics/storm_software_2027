@@ -1,13 +1,10 @@
 # storm_software_2027
-Code for our entry into the [2027 STORM competition](https://storm.soonerrobotics.org/).
-
-TODO: about
+Code for our entry into the [2027 STORM competition](https://storm.soonerrobotics.org/), name TBD.
 
 # Architecture
-The repository is divided into 3 main sections: the Robot code, the Base Station code, and the robot firmware. The robot code is written in Python, and sort of based on last year's code. The base station code is written in HTML/JavaScript, and does away with a separate Python process that we had last year. The firmware is written in C++ using the Arduino library, and is based on work done over the summer that you can find on the `test/stormlib` branch in last year's repository.
+The repository is divided into 3 main sections: the Robot code, the Base Station code, and the robot firmware. The robot code is written in Python, and sort of based on last year's code. The base station code is written in HTML/JavaScript, and does away with the separate Python process that we had last year. The firmware is written in C++ using the Arduino library, and is based on work done over the summer that you can find on the `test/stormlib` branch in last year's repository.
 
 TODO: insert diagram here, and maybe a link to the software architecture document.
-
 
 # Installation
 
@@ -78,10 +75,6 @@ To prepare to run the **Robot** code, follow these steps:
 
     TODO: same steps as last year?
 
-7. **???**
-
-    TODO: other steps???
-
 That's it! You should be all good to run the robot code now.
 
 ## Installation: Base Station
@@ -97,8 +90,42 @@ To prepare to run the **base station** code, perform the following steps:
 
 
 # Running
-TODO: SSH into robot, run websocket server that you built
+## Robot
+To run the robot code, perform the following steps:
 
+TODO: we really should have an auto-run service or something for this...
+
+1. SSH into the robot (TODO: IP address subject to change. definitely at competition there will be a different address)
+
+    ```bash
+    ssh scr@192.168.1.79
+    ```
+
+2. Navigate to the repository
+
+    ```bash
+    cd ~/Documents/storm_software_2027/robot
+    ```
+
+3. Start the websocket server
+
+    ```bash
+    ./ws_server
+    ```
+
+4. Start the robot code
+
+    ```bash
+    python3 ./main.py
+    ```
+
+## Base Station
+To "run" the base station code, simply open `base_station/index.html` in a web browser.
+
+# Button Bindings
+The controls for the robot are shown in the diagram below.
+
+TODO: insert diagram
 
 # Firmware
 TODO: about the firmware
@@ -111,3 +138,5 @@ Libraries needed:
 
 # Contributing
 TODO: branch names, schemes, PR formats, etc.
+
+Sooner Competitive Robotics, 2027.
