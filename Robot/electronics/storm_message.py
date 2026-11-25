@@ -334,80 +334,86 @@ class ShooterPositionCmd(StormMessage):
         self.pack_string = "hB"
 
 # ID 53
-typedef struct ShooterStateRsp {
-    int16_t shooter_velocity;
-    int16_t turret_angle;
-    uint8_t hood_angle;
-} ShooterStateRsp;
+class ShooterStateRsp(StormMessage):
+    def __init__(self, shooter_velocity: int, turret_angle: int, hood_angle: int):
+        super().__init__(StormAddress.COMPUTER, StormMessageId.ShooterStateRsp)
 
-// ID 54
-typedef struct IndexerVelocityCmd {
-    int16_t indexer_velocity;
-} IndexerVelocityCmd;
+        #TODO FIXME scalers and units and stuff
 
-// ID 55
-typedef struct IndexerRawCmd {
-    int16_t indexer_raw;
-} IndexerRawCmd;
+        self.data = [shooter_velocity, turret_angle, hood_angle]
+        self.pack_string = "hhB"
 
-// ID 56
-typedef struct IndexerFeedCmd {
-    uint8_t num_cannonballs;
-} IndexerFeedCmd;
+# ID 54
+class IndexerVelocityCmd(StormMessage):
+    def __init__(self, indexer_velocity: float):
+        super().__init__(StormAddress.CANNON, StormMessageId.IndexerVelocityCmd)
 
-// ID 57
-typedef struct IntakeVelocityCmd {
-    int16_t intake_velocity;
-} IntakeVelocityCmd;
+        #TODO units, scalers
 
-// ID 58
-typedef struct IntakeFeedCmd {
-    uint8_t num_cannonballs;
-} IntakeFeedCmd;
+        self.data = [indexer_velocity]
+        self.pack_string = "h"
 
-// ID 59
-typedef struct IntakeRawCmd {
-    int16_t intake_raw;
-} IntakeRawCmd;
+# ID 55
+class IndexerRawCmd(StormMessage):
+    def __init__(self, indexer_raw: float):
+        super().__init__(StormAddress.CANNON, StormMessageId.IndexerRawCmd)
 
-// ID 60
-typedef struct IntakeIndexerRsp {
-    int16_t intake_velocity;
-    int16_t indexer_velocity;
-    char ir_sensor_states;
-    uint8_t shot_count;
-    uint8_t collected_count;
-} IntakeIndexerRsp;
+        raw_val = float_to_int16(indexer_raw)
 
-// ID 255
-typedef struct DebugeMsg {
-    char[16] data; //TODO FIXME???
-} DebugeMsg;
+        self.data = [raw_val]
+        self.pack_string = "h"
 
+# ID 56
+class IndexerFeedCmd(StormMessage):
+    def __init__(self, num_cannonballs: int):
+        super().__init__(StormAddress.CANNON, StormMessageId.IndexerFeedCmd)
 
-class DriveVelocitiesCmd(StormMessage):
-    def __init__(
-        self,
-        front_left_velocity: float,
-        front_right_velocity: float,
-        back_left_velocity: float,
-        back_right_velocity: float,
-    ):
-        super().__init__(StormAddress.TRAVERSAL, StormMessageId.DriveVelocitiesCmd)
+        self.data = [num_cannonballs]
+        self.pack_string = "B"
 
-        # TODO convert using like, the scalers or something
+# ID 57
+class IntakeVelocityCmd(StormMessage):
+    def __init__(self, intake_velocity: float):
+        super().__init__(StormAddress.CANNON, StormMessageId.IntakeVelocityCmd)
 
-        self.data = [front_left_velocity, front_right_velocity, back_left_velocity, back_right_velocity]
-        self.pack_string = "hhhh" # 4 int16's (signed shorts)
+        #TODO FIXME scaler, units
 
+        self.data = [intake_velocity]
+        self.pack_string = "h"
 
+# ID 58
+class IntakeFeedCmd(StormMessage):
+    def __init__(self, num_cannonballs: int):
+        super().__init__(StormAddress.CANNON, StormMessageId.IntakeFeedCmd)
 
+        self.data = [num_cannonballs]
+        self.pack_string = "B"
 
-if __name__ == "__main__":
-    print("RUNNING!")
+# ID 59
+class IntakeRawCmd(StormMessage):
+    def __init__(self, intake_raw: float):
+        super().__init__(StormAddress.CANNON, StormMessageId.IntakeRawCmd)
 
-    test_msg = StormMessage(StormAddress.TRAVERSAL, StormMessageId.DriveVelocitiesCmd)
+        raw_val = float_to_int16(intake_raw)
 
-    print(test_msg)
+        self.data = [raw_val]
+        self.pack_string = "h"
 
-    print("////////////////////")
+# ID 60
+class IntakeIndexerRsp(StormMessage):
+    def __init__(self, intake_velocity, indexer_velocity, ir_sensor_states, shot_count, collected_count):
+        super().__init__(StormAddress.COMPUTER, StormMessageId.IntakeIndexerRsp)
+
+        #TODO FIXME units and scalers
+
+        self.data = [intake_velocity, indexer_velocity, ir_sensor_states, shot_count, collected_count]
+        self.pack_string = "hhcBB"
+
+# ID 255
+class DebugeMsg(StormMessage):
+    def __init__(self, data):
+        super().__init__(StormAddress.NONE, StormMessageId.DebugeMsg)
+
+        self.data = data
+        self.pack_string = "s"
+
