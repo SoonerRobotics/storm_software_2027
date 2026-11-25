@@ -10,6 +10,7 @@ int16_t byte_to_int16(char* data) {
         return value;
 }
 
+//TODO: document
 uint16_t byte_to_uint16(char* data) {
     uint16_t value = data[0] | (data[1] << 8);
     
@@ -19,41 +20,59 @@ uint16_t byte_to_uint16(char* data) {
 /**
  * Unique number indicating who the message is for.
  * Only the computer (#1) can send messages on its own initiative.
- * If more boards are created, add them after the "game" board.
+ * If more boards are created, add them after the "Cannon" board.
  * The special address number 0 indicates the message is for all boards.
  */
 enum Address {
     all = 0,
     computer = 1,
-    drive = 2,
-    task = 3,
-    sensor = 4,
-    servo = 5,
-    game = 6
+    traversal = 2,
+    cannon = 3,
+    none = 4,
 };
 
 /**
  * The unique message ID of the message.
  * See the STORM 2027 Serial Specification for which messages carry what data
  */
-enum Message {
-    ComputerRequest = 10,
-    Heartbeat = 11,
-    Configuration = 12,
-    ConfigComplete = 13,
-    RobotVelocity = 20,
-    DriveVelocity = 21,
-    DriveVoltage = 22,
-    DriveRaw = 23,
-    DriveFeedback = 24,
-    BatteryVoltage = 25,
-    TaskCommand = 30,
-    TaskResponse = 31,
-    SensorResponse = 40,
-    ServoCommand = 50,
-    GameCommand = 60,
-    GameResponse = 61,
-    None = 255 // this is special and used for testing only
+enum Message { //TODO: rename me?
+    // protocol messages
+    ComputerRequestMsg = 10;
+    HeartbeatMsg = 11;
+    ConfigurationCmd = 12;
+    ConfigurationCompleteMsg = 13;
+
+    // Traversal board messages
+    RobotVelocityCmd = 20;
+    DriveVelocitiesCmd = 21;
+    DriveVoltageCmd = 22;
+    DriveRawCmd = 23;
+    DriveFeedbackRsp = 24;
+    BatteryVoltageRsp = 25;
+
+    ClimberHeightCmd = 26;
+    ClimberVelocityCmd = 27;
+    ClimberRawCmd = 28;
+    ClimberPositionCmd = 29;
+    ClimberSensorRsp = 30;
+    ClimberStateRsp = 31;
+
+    // Cannon board messages
+    ShooterVelocityCmd = 50;
+    ShooterRawCmd = 51;
+    ShooterPositionCmd = 52;
+    ShooterStateRsp = 53;
+
+    IndexerVelocityCmd = 54;
+    IndexerRawCmd = 55;
+    IndexerFeedCmd = 56;
+    IntakeVelocityCmd = 57;
+    IntakeFeedCmd = 58;
+    IntakeRawCmd = 59;
+    IntakeIndexerRsp = 60;
+
+     // this is special and used for testing only
+    DebugeMsg = 255;
 };
 
 // ========== message typedef struct definitions ==========
@@ -72,12 +91,12 @@ typedef struct HeartbeatMsg {
 typedef struct ConfigurationMsg {
     uint8_t type;
     uint8_t ID;
-    //TODO
+    char value[6]; //TODO this will only actually be as long as the data type requires though??? need to be pointer???
 } ConfigurationMsg;
 
 // ID 13
 typedef struct ConfigCompleteMsg {
-    char b = 0x00;
+    uint8_t num_configs;
 } ConfigCompleteMsg;
 
 // ID 20
@@ -126,54 +145,115 @@ typedef struct BatteryVoltageRsp {
     uint8_t voltage;
 } BatteryVoltageRsp;
 
+// ID 26
+typedef struct ClimberHeightCmd {
+    uint8_t height;
+} ClimberHeightCmd;
+
+// ID 27
+typedef struct ClimberVelocityCmd {
+    //FIXME message not fully defined yet
+    int16_t climber_one_velocity;
+    int16_t climber_two_velocity;
+} ClimberVelocityCmd;
+
+// ID 28
+typedef struct ClimberRawCmd {
+    int16_t climber_one_raw;
+    int16_t climber_two_raw;
+} ClimberRawCmd;
+
+// ID 29
+typedef struct ClimberPositionCmd {
+    uint8_t servo_one_position;
+    uint8_t servo_two_position;
+} ClimberPositionCmd;
+
 // ID 30
-typedef struct TaskCommandCmd {
-    //FIXME - message not defined yet
-    int16_t intake_velocity;
-    uint8_t arm_position;
-    uint16_t climber_position;
-    uint8_t charging_wheel_velocity;
-} TaskCommandCmd;
+typedef struct ClimberSensorRsp {
+    bool climber_sensor;
+} ClimberSensorRsp;
 
 // ID 31
-typedef struct TaskResponseRsp {
-    //FIXME - message not defined yet
-    int16_t intake_velocity;
-    uint8_t arm_position;
-    uint16_t climber_position;
-    uint8_t charging_wheel_velocity;
-} TaskResponseRsp;
-
-// ID 40
-typedef struct SensorResponseRsp {
-    //FIXME - message not defined yet
-    int8_t robot_current;
-    uint16_t arm_distance;
-    uint16_t back_distance;
-    bool intake_possession;
-} SensorResponseRsp;
+typedef struct ClimberStateRsp {
+    int16_t climber_one_velocity;
+    int16_t climber_two_velocity;
+    uint8_t climber_height;
+    uint8_t servo_one_position;
+    uint8_t servo_two_position;
+    bool climber_sensor;
+} ClimberStateRsp;
 
 // ID 50
-typedef struct ServoCommandCmd {
-    //FIXME - message not defined yet
-    uint8_t arm_position;
-    int8_t wrist_position;
-    bool claw_toggle;
-    //TODO: other servos here
-} ServoCommandCmd;
+typedef struct ShooterVelocityCmd {
+    uint16_t shooter_velocity;
+} ShooterVelocityCmd;
+
+// ID 51
+typedef struct ShooterRawCmd {
+    uint16_t shooter_raw;
+} ShooterRawCmd;
+
+// ID 52
+typedef struct ShooterPositionCmd {
+    int16_t turret_angle;
+    uint8_t hood_angle;
+} ShooterPositionCmd;
+
+// ID 53
+typedef struct ShooterStateRsp {
+    int16_t shooter_velocity;
+    int16_t turret_angle;
+    uint8_t hood_angle;
+} ShooterStateRsp;
+
+// ID 54
+typedef struct IndexerVelocityCmd {
+    int16_t indexer_velocity;
+} IndexerVelocityCmd;
+
+// ID 55
+typedef struct IndexerRawCmd {
+    int16_t indexer_raw;
+} IndexerRawCmd;
+
+// ID 56
+typedef struct IndexerFeedCmd {
+    uint8_t num_cannonballs;
+} IndexerFeedCmd;
+
+// ID 57
+typedef struct IntakeVelocityCmd {
+    int16_t intake_velocity;
+} IntakeVelocityCmd;
+
+// ID 58
+typedef struct IntakeFeedCmd {
+    uint8_t num_cannonballs;
+} IntakeFeedCmd;
+
+// ID 59
+typedef struct IntakeRawCmd {
+    int16_t intake_raw;
+} IntakeRawCmd;
 
 // ID 60
-typedef struct GameCommandCmd {
-    //FIXME - message not defined yet
-    char TEMPORARY;
-} GameCommandCmd;
+typedef struct IntakeIndexerRsp {
+    int16_t intake_velocity;
+    int16_t indexer_velocity;
+    char ir_sensor_states;
+    uint8_t shot_count;
+    uint8_t collected_count;
+} IntakeIndexerRsp;
 
-// ID 61
-typedef struct GameResponseRsp {
-    //FIXME - message not defined yet
-    char TEMPORARY;
-} GameResponseRsp;
+// ID 255
+typedef struct DebugeMsg {
+    char[16] data; //TODO FIXME???
+} DebugeMsg;
 
+
+// ================================================
+// ===     end message struct definitions       ===
 // ================================================
 
 
@@ -318,62 +398,161 @@ public:
         return rsp;
     }
 
-    TaskCommandCmd AsTaskCommand() {
-        TaskCommandCmd cmd;
+    ClimberHeightCmd AsClimberHeightCmd() {
+        ClimberHeightCmd cmd;
+
+        cmd.height = static_cast<uint8_t>(DATA[0]);
+
+        return cmd;
+    }
+
+    ClimberVelocityCmd AsClimberVelocityCmd() {
+        ClimberVelocityCmd cmd;
+
+
+        cmd.climber_one_velocity = byte_to_int16(DATA);
+        cmd.climber_two_velocity = byte_to_int16(DATA + 2);
+
+        return cmd;
+    }
+
+    ClimberRawCmd AsClimberRawCmd() {
+        ClimberRawCmd cmd;
+
+        cmd.climber_one_raw = byte_to_int16(DATA);
+        cmd.climber_two_raw = byte_to_int16(DATA + 2);
+
+        return cmd;
+    }
+
+    ClimberPositionCmd AsClimberPositionCmd() {
+        ClimberPositionCmd cmd;
+
+        cmd.servo_one_position = static_cast<uint8_t>(DATA[0]);
+        cmd.servo_two_position = static_cast<uint8_t>(DATA[1]);
+
+        return cmd;
+    }
+
+    ClimberSensorRsp AsClimberSensorRsp() {
+        ClimberSensorRsp rsp;
+
+        rsp.climber_sensor = static_cast<bool>(DATA[0]);
+
+        return rsp;
+    }
+
+    ClimberStateRsp AsClimberStateRsp() {
+        ClimberStateRsp rsp;
+
+        rsp.climber_one_velocity = byte_to_int16(DATA);
+        rsp.climber_two_velocity = byte_to_int16(DATA + 2);
+        rsp.climber_height = static_cast<uint8_t>(DATA[4]);
+        rsp.servo_one_position = static_cast<uint8_t>(DATA[5]);
+        rsp.servo_two_position = static_cast<uint8_t>(DATA[6]);
+        rsp.climber_sensor = static_cast<bool>(DATA[7]);
+
+        return rspl;
+    }
+
+    ShooterVelocityCmd AsShooterVelocityCmd() {
+        ShooterVelocityCmd cmd;
+
+        cmd.shooter_velocity = byte_to_uint16(DATA);
+
+        return cmd;
+    }
+
+    ShooterRawCmd AsShooterRawCmd() {
+        ShooterRawCmd cmd;
+
+        cmd.shooter_raw = byte_to_uint16(DATA);
+
+        return cmd;
+    }
+
+    ShooterPositionCmd AsShooterPositionCmd() {
+        ShooterPositionCmd cmd;
+
+        cmd.turret_angle = static_cast<uint8_t>(DATA[0]);
+        cmd.hood_angle = static_cast<uint8_t>(DATA[1]);
+
+        return cmd;
+    }
+
+    ShooterStateRsp AsShooterStateRsp() {
+        ShooterStateRsp rsp;
         
+        rsp.shooter_velocity = byte_to_int16(DATA);
+        rsp.turret_angle = byte_to_int16(DATA + 2);
+        rsp.hood_angle = static_cast<uint8_t>(DATA[4]);
+
+        return rsp;
+    }
+
+    IndexerVelocityCmd AsIndexerVelocityCmd() {
+        IndexerVelocityCmd cmd;
+
+        cmd.indexer_velocity = byte_to_int16(DATA);
+
+        return cmd;
+    }
+
+    IndexerRawCmd AsIndexerRawCmd() {
+        IndexerRawCmd cmd;
+        
+        cmd.indexer_raw = byte_to_int16(DATA);
+
+        return cmd;
+    }
+
+    IndexerFeedCmd AsIndexerFeedCmd() {
+        IndexerFeedCmd cmd;
+
+        cmd.num_cannonballs = static_cast<uint8_t>(DATA[0]);
+
+        return cmd;
+    }
+
+    IntakeVelocityCmd AsIntakeVelocityCmd() {
+        IntakeVelocityCmd cmd;
+
         cmd.intake_velocity = byte_to_int16(DATA);
-        cmd.arm_position = static_cast<uint8_t>(DATA[2]);
-        cmd.climber_position = byte_to_uint16(DATA + 3);
-        cmd.charging_wheel_velocity = static_cast<uint8_t>(DATA[5]);
 
         return cmd;
     }
 
-    TaskResponseRsp AsTaskResponse() {
-        TaskResponseRsp rsp;
+    IntakeFeedCmd AsIntakeFeedCmd() {
+        IntakeFeedCmd cmd;
+        
+        cmd.num_cannonballs = static_cast<uint8_t>(DATA[0]);
 
+        return cmd;
+    }
+
+    IntakeRawCmd AsIntakeRawCmd() {
+        IntakeRawCmd cmd;
+
+        cmd.intake_raw = byte_to_int16(DATA);
+
+        return cmd;
+    }
+
+    IntakeIndexerRsp AsIntakeIndexerRsp() {
+        IntakeIndexerRsp rsp;
+        
         rsp.intake_velocity = byte_to_int16(DATA);
-        rsp.arm_position = static_cast<uint8_t>(DATA[2]);
-        rsp.climber_position = byte_to_uint16(DATA + 3);
-        rsp.charging_wheel_velocity = static_cast<uint8_t>(DATA[5]);
+        rsp.indexer_velocity = byte_to_int16(DATA + 2);
+        rsp.ir_sensor_states = static_cast<char>(DATA[4]);
+        rsp.shot_count = static_cast<uint8_t>(DATA[5]);
+        rsp.collected_count = static_cast<uint8_t>(DATA[6]);
 
         return rsp;
     }
 
-    SensorResponseRsp AsSensorResponse() {
-        SensorResponseRsp rsp;
-        
-        rsp.robot_current = static_cast<uint8_t>(DATA[0]);
-        rsp.arm_distance = byte_to_uint16(DATA + 1);
-        rsp.back_distance = byte_to_uint16(DATA + 3);
-        rsp.intake_possession = static_cast<bool>(DATA[5]);
-
-        return rsp;
-    }
-
-    ServoCommandCmd AsServoCommand() {
-        ServoCommandCmd cmd;
-        
-        cmd.arm_position = static_cast<uint8_t>(DATA[0]);
-        cmd.wrist_position = static_cast<int8_t>(DATA[1]);
-        cmd.claw_toggle = static_cast<bool>(DATA[2]);
-
-        return cmd;
-    }
-
-    GameCommandCmd AsGameCommand() {
-        GameCommandCmd cmd;
-        
-        //TODO: message not defined yet
-
-        return cmd;
-    }
-
-    GameResponseRsp AsGameResponse() {
-        GameResponseRsp rsp;
-        
-        //TODO: message not defined yet
-
-        return rsp;
-    }
+    //TODO once we have this figured out, if we even actually need it
+    // // ID 255
+    // typedef struct DebugeMsg {
+    //     char[16] data;
+    // } DebugeMsg;
 };
